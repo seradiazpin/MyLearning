@@ -1,5 +1,26 @@
 # .NET MVC
 
+### TO READ
+https://blogs.msdn.microsoft.com/rickandy/2011/01/28/dynamic-v-strongly-typed-views/
+
+## Routes
+In ASP.NET MVC applications, it's more typical to pass in parameters as route data than passing them as query strings.
+To do that you have to add the route configuration to the RouteConfig file.
+``` c#
+public class RouteConfig
+{
+   public static void RegisterRoutes(RouteCollection routes)
+   {
+    ....
+    routes.MapRoute(
+           name: "RouteName",
+           url: "{controller}/{action}/{parameter0}/{parameter1}/.../{parameterN}"
+       );
+    ....
+   }
+ }
+```
+
 ## Security
 
 For encoding html you should use [this](https://msdn.microsoft.com/en-us/library/a2a4yykt(v=vs.100).aspx)
