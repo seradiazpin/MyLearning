@@ -31,3 +31,25 @@ class CrearPagina
             return output;
         }
     }
+/*
+SE USA CON UN OBJETO CON LAS ETIQUETAS DEL TEMPLATE
+ public class Program
+    {
+        static void Main()
+        {
+            var template = new CrearPagina(@"Template.html");
+            var output = template.Render(new
+            {
+                TITLE = "My Web Page",
+                TEST = "HOLA TEMPLATE",
+                METAKEYWORDS = "Keyword1, Keyword2, Keyword3",
+                BODY = "Body content goes here",
+                ETC = "etc"
+            });
+            Console.WriteLine(output);
+            File.WriteAllText(@"CentroPagos.html", output);
+            Console.Read();
+        }
+    }
+
+*/
