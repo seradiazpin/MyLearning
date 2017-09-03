@@ -7,9 +7,12 @@ using System.Text;
 class CrearPagina
     {
         private string _html;
-
+        private string _htmltable;
+        private string _htmlFila; 
         public CrearPagina(string templatePath)
         {
+            _htmltable = "<table style='width: 100 % '><tr><th> Firstname </th><th> Lastname </th><th> Age </th></tr>";
+            _htmlFila = "<tr><td> {0} </td ><td> {1} </td><td> {2} </td></tr> ";
             using (FileStream fileStream = new FileStream(templatePath, FileMode.OpenOrCreate))
             {
                 using (StreamReader reader = new StreamReader(fileStream))
@@ -19,15 +22,21 @@ class CrearPagina
             }
         }
 
+        public void GenerarTabla(string []data)
+        {
+            _htmltable = string.Concat(_htmltable, string.Format(_htmlFila, data[0], data[1], data[2]));
+        }
+
         public string Render(object values)
         {
             string output = _html;
             foreach (var p in values.GetType().GetProperties())
             {
-
-                output = output.Replace("[" + p.Name + "]", (p.GetValue(values, null) as string) ?? string.Empty);
+                if(!p.Name.Equals("TABLA"))
+                    output = output.Replace("[" + p.Name + "]", (p.GetValue(values, null) as string) ?? string.Empty);
             }
-            
+            _htmltable = string.Concat(_htmltable, "</table>");
+            output = output.Replace("[TABLA]", _htmltable);
             return output;
         }
     }
