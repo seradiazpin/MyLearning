@@ -8,11 +8,9 @@ class CrearPagina
     {
         private string _html;
         private string _htmltable;
-        private string _htmlFila; 
         public CrearPagina(string templatePath)
         {
             _htmltable = "<table style='width: 100 % '><tr><th> Firstname </th><th> Lastname </th><th> Age </th></tr>";
-            _htmlFila = "<tr><td> {0} </td ><td> {1} </td><td> {2} </td></tr> ";
             using (FileStream fileStream = new FileStream(templatePath, FileMode.OpenOrCreate))
             {
                 using (StreamReader reader = new StreamReader(fileStream))
@@ -22,9 +20,9 @@ class CrearPagina
             }
         }
 
-        public void GenerarTabla(string []data)
+        public void InsertarEnTabla(string formatoFila, string []data)
         {
-            _htmltable = string.Concat(_htmltable, string.Format(_htmlFila, data[0], data[1], data[2]));
+            _htmltable = string.Concat(_htmltable, string.Format(formatoFila, data[0], data[1], data[2]));
         }
 
         public string Render(object values)
@@ -44,9 +42,18 @@ class CrearPagina
 SE USA CON UN OBJETO CON LAS ETIQUETAS DEL TEMPLATE
  public class Program
     {
-        static void Main()
+       static void Main()
         {
+            var test = new[] {
+                new[] { "here", "there", "mine" },
+                new[] { "here1", "there1", "mine1" },
+                new[] { "here2", "there1", "mine2" }
+            };
             var template = new CrearPagina(@"Template.html");
+            foreach(var ele in test)
+            {
+                template.InsertarEnTabla("<tr><td> {0} </td ><td> {1} </td><td><a href='https://google.com/?q={2}'> {2} </a></td></tr> ",ele);
+            }
             var output = template.Render(new
             {
                 TITLE = "My Web Page",
