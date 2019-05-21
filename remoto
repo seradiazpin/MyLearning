@@ -1,0 +1,109 @@
+param 
+(  
+    # Usuario Servidor
+    [string]$Credenciales,
+    # Servidor a conectarce
+    [string]$Servidor,
+    # Proyecto a pasar
+    [string]$Compilar = 2
+)
+
+<#
+    CopiarArchivos(Copia archivos en el servidor)
+    $NombreSolucion = Que se va a publicar,
+    $Carpeta = Ubicacion de las dll,
+    $RutaSitio = Ubicacion de las dll en el servidor,
+    $Credenciales Usuario del servidor,
+    $Servidor = IP o nombre del servidor,
+    $NombreSitio  = Nombre del sitio en el servidor,
+    $RutaBackUP = Ruta de donde se guardan los backup en el servidor
+    NOTA: Si no se puede conectar con el servidor activar el winrm quickconfig 
+    y agregar a los Trustedhosts
+    winrm set winrm/config/client '@{TrustedHosts="10.130.0.11"}'
+#>
+Function CopiarArchivos{
+
+    param 
+    (  
+        [string]$NombreSolucion,
+        [string]$Carpeta = "C:\SISEC\",
+        [string]$RutaSitio,
+        [string]$Credenciales,
+        [string]$Servidor,
+        [string]$NombreSitio,
+		[string]$RutaBackUP = "C:\Backups SISEC\"
+    )
+    $Session = New-PSSession $Servidor -Credential $Credenciales
+    $Date = Get-Date
+    $time = $Date.ToString("yyyyMMdd")
+    $RutaBin = $RutaSitio + "\bin\"
+    $Ruta = $RutaBackUP + $NombreSitio + $time
+    $RutaPublicacion = $Carpeta + $NombreSolucion + '\bin'
+
+    echo "-------------------------------------"
+     
+    echo "time"$time
+    echo "RutaBackUP"$RutaBackUP
+    echo "RutaBin"$RutaBin
+    echo "Ruta"$Carpeta
+    echo "RutaPublicacion" $RutaPublicacion
+
+    $existsOnRemote = Invoke-Command -Session $Session {param($fullpath) Test-Path $fullPath } -argumentList $Ruta; 
+    if(-not $existsOnRemote){
+        Invoke-Command -Session $Session {param($RutaBin, $Ruta) Copy-Item  -Path $RutaBin -Destination $Ruta –Recurse } -argumentList $RutaBin,$Ruta ;
+        echo $RutaBin
+        Copy-Item -ToSession $Session -Path $RutaPublicacion -Destination $RutaSitio -Recurse -Force
+    }else{
+		echo $RutaBin
+        Copy-Item -ToSession $Session -Path $RutaPublicacion -Destination $RutaSitio -Recurse -Force
+    }
+    
+    Remove-PSSession -Session $Session
+}
+
+
+Function CopiarArchivosAplicacion{
+
+    param 
+    (  
+        [string]$NombreSolucion,
+        [string]$Carpeta = "C:\SISEC\",
+        [string]$RutaSitio,
+        [string]$Credenciales,
+        [string]$Servidor,
+        [string]$NombreSitio,
+		[string]$RutaBackUP = "C:\Backups SISEC\"
+    )
+    $Session = New-PSSession $Servidor -Credential $Credenciales
+    $Date = Get-Date
+    $time = $Date.ToString("yyyyMMdd")
+    $RutaBin = $RutaSitio 
+    $Ruta = $RutaBackUP + $NombreSitio + $time
+    $RutaPublicacion = $Carpeta + $NombreSolucion
+
+    echo "-------------------------------------"
+     
+    echo "time"$time
+    echo "RutaBackUP"$RutaBackUP
+    echo "RutaBin"$RutaBin
+    echo "Ruta"$Carpeta 
+    echo "RutaPublicacion" $RutaPublicacion
+
+    $existsOnRemote = Invoke-Command -Session $Session {param($fullpath) Test-Path $fullPath } -argumentList $Ruta; 
+    if(-not $existsOnRemote){
+        Invoke-Command -Session $Session {param($RutaBin, $Ruta) Copy-Item  -Path $RutaBin -Destination $Ruta –Recurse } -argumentList $RutaBin,$Ruta ;
+        echo $RutaBin
+        Copy-Item -ToSession $Session -Path $RutaPublicacion -Destination $RutaSitio -Recurse -Force 
+    }else{
+		echo $RutaBin 
+        echo $Session
+        Copy-Item -ToSession $Session -Path $RutaPublicacion -Destination $RutaSitio -Recurse -Force
+    }
+    
+    Remove-PSSession -Session $Session
+}
+
+if($Compilar -eq "1" -or $Compilar -eq "FachadaSISEC"){
+   echo "-----------------------Publicando Fachada SISEC-----------------------------------------------"
+   CopiarArchivos -NombreSolucion "SISEC.Fachadas.Sisec" -NombreSitio "FachadaSISEC"  -RutaSitio "C:\SISEC\FachadaSISEC" -Credenciales $Credenciales -Servidor $Servidor
+}
