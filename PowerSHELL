@@ -1,0 +1,184 @@
+param 
+(  
+    #VersionDeAplicacion
+    [string]$VesionExamen = "1.0.0.1",
+    #Carpeta del team foundatuion
+    [string]$Carpeta = "CRC_D",
+    #Que proyecto compilar
+    [string]$Compilar = "2",
+    #Usuario del servidor
+    [string]$Credenciales,
+    #Servidor a pasar los archivos
+    [string]$Servidor,
+    #Si Compilar los proyectos
+    [int]$build = 1,
+    #Si pasar los archivos al servidor remoto
+    [int]$Remoto = 1
+
+
+)
+
+<# 
+    MSBUILDAUTO (Permite compilar proyecto y copiar las dll en una ubicacion)
+    $Publicacion = Ubicacion donde se copiaran las dll,
+    $temp = Proyecto de visual studio.
+    $Bin = Ubicacion del bin para copiar las dll compiladas. 
+#>
+Function MSBUILDAUTO{
+
+    param 
+    (  
+        [string]$Publicacion = "C:\CRC_D-Publicacion\Fachadas\SISEC.Fachadas.Therion",
+        [string]$temp = "D:/CRC_D/Fachadas/SISEC.Fachadas.Therion/SISEC.Fachadas.Therion.csproj",
+        [string]$Bin = "D:\CRC_D\Fachadas\SISEC.Fachadas.Therion\bin"
+    )
+
+    # Log de datos
+    $today = (Get-Date).Date
+    echo "|                                       MSBUILDAUTO                                                            |"
+    echo "---------------------------------------------------------------------------------------------------------------"
+    echo "CarpetaPublicacion"$Publicacion
+    echo "CarpetaProyecto"$temp
+    echo "CarpetaBin"$Bin
+    echo "---------------------------------------------------------------------------------------------------------------"
+    $Log = $Publicacion + "Log.log"
+
+    # Compital aplicacion
+    .\MSBuild.exe $temp /t:Clean,Build /consoleloggerparameters:ErrorsOnly /fl /flp:LogFile=$Log 
+
+    # Borrar publicaciones anteriores y Crear la carpeta
+    rm $Publicacion -ErrorAction Ignore -Force -Recurse
+    New-Item -ItemType directory -Path $Publicacion 
+
+    # Copia las Dll modificadas el dia de hoy en la nueva carpeta
+    Get-ChildItem $Bin -Recurse -include @("*.dll") | 
+        Where-Object { $_.LastWriteTime -gt $today} | 
+        Move-Item -Destination $Publicacion -Force 
+    echo "---------------------------------------------------------------------------------------------------------------"
+}
+
+<#
+    Regex(Permite extraer la seccion del nombre del proyecto, con expresiones regulares)
+     $Texto = "Texto a evaluar",
+     $Patron = "Expresion Regular"
+#>
+Function Regex(){
+    param
+    (
+        [string]$Texto,
+        [string]$Patron
+    )
+    $Resultado = $Texto -match $Patron
+    if ($Resultado) {
+        $Resultado = $matches[$matches.Length-1]
+    }
+    return $Resultado
+}
+
+<#
+    AutomaticoServicio(Compila un servicio)
+    $Proyectos = Arreglo con los proyectos a compilar.
+#>
+Function AutomaticoServicio {
+    param 
+    (  
+        [string[]]$Proyectos = @("D:\CRC_D\Fachadas\SISEC.Fachadas.Therion" , "D:\CRC_D\Fachadas\SISEC.Fachadas.Sisec")
+    )
+    
+    for($i = 0; $i -le $Proyectos.Length-1; $i++){
+        $NombreSolucion = Regex -Texto $Proyectos[$i] -Patron "[^\\]+(?=\\$|$)"
+        $Bin = $Proyectos[$i]+"\bin"
+        $Publicacion = "C:\SISEC\"+$NombreSolucion+"\bin"
+        $rutatemp = $Proyectos[$i]+"\"+$NombreSolucion+".csproj" 
+        echo "|                                       Compilando Proyecto                                                    |"
+        echo "---------------------------------------------------------------------------------------------------------------"
+        echo "NombreSolucion :"$NombreSolucion
+        echo "CarpetaProyecto :"$Bin
+        echo "Publicacion :"$Publicacion
+        echo "RutaTemp :" $rutatemp
+        echo "---------------------------------------------------------------------------------------------------------------"
+
+        MSBUILDAUTO -Publicacion $Publicacion -Bin $Bin -temp $rutatemp 
+    }
+
+}
+
+<#
+   AutomaticoAplicacion(Publica una aplicacion en click once, para compilar una cambiar PublishDir por OutDirs)
+    $Proyecto = Proyecto a compilar,
+
+    $Configuracion = El configuracion que se va a usar "Debug", "Pruebas", "Release", 
+                     Tener en cuenta que para que funcione por consola toca colocar 
+                     la configuracion en todos los proyectos dependientes,
+
+    $AplicacionPublicacion = Ruta donde se guardaran los archivos
+    $UrlPublicacion = Url de publicacion ,
+    $UrlActualizacion = Url de Actualizacion,
+    $Version = Version de la aplicacion
+#>
+Function AutomaticoAplicacion {
+    param 
+    (  
+        [string]$Proyecto = "D:\CRC_D\OtrasAplicaciones\SACII\SAC2 - Olimpia\SAC\SAC\SAC.vbproj",
+        [string]$Configuracion ="Debug",
+        [string]$AplicacionPublicacion = "C:\SISEC\SISECExamen\SISECExamen",
+        [string]$UrlPublicacion = "https://olsrvdeswbwtss1.olimpiait.local:6214/SISECEXAMEN/",
+        [string]$UrlActualizacion = "",
+        [string]$Version = '1.0.0.1'
+    )
+
+   
+    echo "|                                       Compilando Aplicacion                                                  |"
+    echo "---------------------------------------------------------------------------------------------------------------"
+    echo "Proyecto :"$Proyecto 
+    echo "Configuracion:"$Configuracion
+    echo "AplicacionPublicacion:"$AplicacionPublicacion
+    echo "UrlPublicacion:"$UrlPublicacion
+    echo "UrlActualizacion :"$UrlActualizacion 
+    echo "Version :"$Version 
+    echo "---------------------------------------------------------------------------------------------------------------"
+    if($UrlActualizacion -eq ""){
+        $UrlActualizacion = $UrlPublicacion
+    }
+    $Log = $AplicacionPublicacion + "Log.log"
+    .\MSBuild.exe $Proyecto /t:Clean,publish /p:Configuration=$Configuracion,PublishDir=$AplicacionPublicacion,PublishUrl=$UrlPublicacion,ApplicationVersion=$Version,AssemblyVersion=$Version,UpdateUrl=$UrlActualizacion /consoleloggerparameters:ErrorsOnly  /fl /flp:LogFile=$Log 
+
+
+}
+
+# Guardamos la ubicacion de donde se ejecuta el comando para regresar al final a la misma carpeta
+$UbicacionScript = pwd
+
+$UbicacionMSBUILD = "C:/Program Files (x86)/MSBuild/14.0/Bin"
+cd $UbicacionMSBUILD
+
+
+
+
+if(($Compilar -eq "1" -or $Compilar -eq "0" -or $Compilar -eq "FachadaSISEC") -and $build -eq '1'){
+    clear
+    echo "---------------------------------------------------------------------------------------------------------------"
+    echo "|                                        Fachada SISEC                                                         |"
+    echo "---------------------------------------------------------------------------------------------------------------"
+    $Solucion = "D:\"+$Carpeta +"\Fachadas\SISEC.Fachadas.Sisec"
+    AutomaticoServicio -Proyectos  $Solucion
+}
+
+
+
+if(($Compilar -eq "3" -or $Compilar -eq "0" -or $Compilar -eq "Examen") -and $build -eq '1'){
+    clear
+    echo "---------------------------------------------------------------------------------------------------------------"
+    echo "|                                           SISEC Examen                                                      |"
+    echo "---------------------------------------------------------------------------------------------------------------"
+
+    $Solucion = "D:\"+$Carpeta +"\OtrasAplicaciones\SACII\SAC2 - Olimpia\SAC\SAC\SAC.vbproj"
+    AutomaticoAplicacion -Proyecto $Solucion  -Configuracion "Debug" -UrlPublicacion "https://olsrvdeswbwtss1.olimpiait.local:6214/SISECEXAMEN/" -Version '1.0.0.1' -AplicacionPublicacion "C:\SISEC\SISECExamen\"
+  }
+
+cd $UbicacionScript
+
+# Iniciamos el scrip para pasar los archivos del servidor
+if($Remoto -eq '1'){
+. ./CopiarRemoto.ps1 -Credenciales $Credenciales -Servidor $Servidor -Compilar $Compilar
+}
